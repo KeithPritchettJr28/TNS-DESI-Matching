@@ -93,3 +93,31 @@ def read_desi_zcat(specprod='fuji'):
 %time zcat = read_desi_zcat()
 zcat
 ```
+
+```python
+def match_tns_desi(tns, zcat, rad=1.0, makeplot=False):
+    """Write me."""
+    tns_coord = SkyCoord(tns['RA_HMS'], tns['DEC_DMS'], frame='icrs', unit=['hour', 'degree'])
+    desi_coord = SkyCoord(zcat['TARGET_RA'], zcat['TARGET_DEC'], frame='icrs', unit='degree')
+    
+    minsep = rad * u.arcsec
+    idx, d2d, _ = desi_coord.match_to_catalog_3d(tns_coord)  
+    indx_desi = np.where(d2d < minsep)[0]
+    indx_tns = idx[indx_desi]
+    print('{} matches'.format(len(indx_desi)))
+    
+    if makeplot:
+        pngfile = 'tns-desi-matches.png'
+        fig = plt.figure(figsize=(10, 8))
+        plt.scatter(tns_coord.ra.value[indx_tns], tns_coord.dec.value[indx_tns], marker='s', s=100, color='k')
+        plt.scatter(desi_coord.ra.value[indx_desi], desi_coord.dec.value[indx_desi], marker='x', s=120, color='orange')
+        
+        print('Writing {}'.format(pngfile))
+        plt.savefig(pngfile)
+    
+    return indx_desi, indx_tns
+```
+
+```python
+%time indx_desi, indx_tns = match_tns_desi(tns, zcat, rad=1.0, makeplot=True)
+```
