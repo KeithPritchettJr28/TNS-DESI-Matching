@@ -114,23 +114,36 @@ tns
 
 def read_desi_zcat(specprod='fuji'):
     """Write me."""
+    
     import fitsio
     from astropy.table import Table, vstack
     from glob import glob
+    from desitarget.targets import main_cmx_or_sv
     
     specprod_dir = f'/global/cfs/cdirs/desi/spectro/redux/{specprod}/zcatalog'
     zcatfiles = glob(os.path.join(specprod_dir, 'zpix-*.fits'))
 
-    zcat = []
+    zcat1 = []
     for zcatfile in zcatfiles:
         print('Reading {}'.format(zcatfile))
         zcat1 = Table(fitsio.read(zcatfile))
+        zcat1['ISBGS'] = np.zeros(len(zcat1), bool)
+        zcat1['ISELG'] = np.zeros(len(zcat1), bool)
+        zcat1['ISLRG'] = np.zeros(len(zcat1), bool)
+        zcat1['ISQSO'] = np.zeros(len(zcat1), bool)
+
+        # determine each type of object
+        for iobj in np.arange(len(zcat1)):
+            targetcols, targetmasks, survey = main_cmx_or_sv(zcat1[iobj])
+            zcat1['ISBGS'][iobj] = zcat1[iobj]['{}_DESI_TARGET'.format(survey.upper())] & targetmasks[0].BGS_ANY != 0 
+            zcat1['ISELG'][iobj] = zcat1[iobj]['{}_DESI_TARGET'.format(survey.upper())] & targetmasks[0].ELG != 0 
+            zcat1['ISLRG'][iobj] = zcat1[iobj]['{}_DESI_TARGET'.format(survey.upper())] & targetmasks[0].LRG != 0 
+            zcat1['ISQSO'][iobj] = zcat1[iobj]['{}_DESI_TARGET'.format(survey.upper())] & targetmasks[0].QSO != 0        
         zcat.append(zcat1)
         
     zcat = vstack(zcat)
 
     return zcat
-
 
 # In[9]:
 
